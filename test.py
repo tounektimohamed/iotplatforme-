@@ -24,12 +24,12 @@ for i in range(6):
         message_data = {
             "message": random_heart_rate,  # La valeur de la fréquence cardiaque
             "topic": "heart_rate"  # Topic pour la fréquence cardiaque
-        }
+        } 
         print(f"Envoi du message {i+1} - Fréquence cardiaque: {random_heart_rate} bpm")
     else:
         # Simuler un message de SPO2
         random_spo2 = generate_random_spo2()
-        message_data = {
+        message_data = { 
             "message": random_spo2,  # La valeur du SPO2
             "topic": "spo2"  # Topic pour SPO2
         }
