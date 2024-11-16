@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Dashboard</title>
+    <style>
+        /* Resetting default styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Global styles */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7fc;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        .navbar {
+            background-color: #4CAF50;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .navbar div {
+            display: flex;
+            gap: 10px;
+        }
+
+        .navbar h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .navbar button {
+            background-color: #FF5733;
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            cursor: pointer;
+            border-radius: 25px;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .navbar button:hover {
+            background-color: #c1351d;
+        }
+
+        /* Main container */
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-top: 100px;
+            width: 100%;
+            max-width: 1200px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .user-info {
+            background-color: white;
+            padding: 35px;
+            border-radius: 10px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 420px;
+            margin-bottom: 40px;
+        }
+
+        .user-info img {
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            margin-bottom: 20px;
+            object-fit: cover;
+        }
+
+        .user-info h2 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        .user-info p {
+            color: #666;
+            font-size: 15px;
+            margin: 5px 0;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 1200px) {
+            .navbar {
+                padding: 15px 20px;
+            }
+
+            .navbar h1 {
+                font-size: 24px;
+            }
+
+            .navbar button {
+                font-size: 14px;
+            }
+
+            .container {
+                margin-top: 120px;
+                padding: 10px;
+            }
+
+            .user-info {
+                max-width: 380px;
+                padding: 25px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="navbar">
+        <h1>Dashboard</h1>
+        <div>
+            <button id="filterButton" onclick="window.location.href='filter.html'">Filter</button>
+            <button onclick="window.location.href='/logout'">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="user-info">
+            <img src="{{ user['picture'] }}" alt="Profile Image">
+            <h2>Welcome, {{ user['name'] }}</h2>
+            <p>Email: {{ user['email'] }}</p>
+        </div>
+    </div>
+    <div id="button-container">
+        <button onclick="window.location.href='/spo2_plot'">Voir Graphique SPO2</button>
+    </div>
+
+    <div class="container">
+        <h2>Real-Time Heart Rate Chart</h2>
+        <canvas id="heartRateChart" width="400" height="200"></canvas>
+    </div>
+
+    <div class="container">
+        <h2>Real-Time Blood Pressure Chart</h2>
+        <canvas id="bloodPressureChart" width="400" height="200"></canvas>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.min.js"></script>
+<script>
+    var socket = io.connect('http://localhost:5000');  // Ensure this matches the Flask server URL
+
+    // Initialize chart data
+    var heartRateChartData = {
+        labels: [],
+        datasets: [{
+            label: 'Heart Rate (bpm)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            fill: false,
+            data: []
+        }]
+    };
+
+    var bloodPressureChartData = {
+        labels: [],
+        datasets: [{
+            label: 'Blood Pressure (mmHg)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            fill: false,
+            data: []
+        }]
+    };
+
+    // Create the charts
+    var heartRateChart = new Chart(document.getElementById('heartRateChart'), {
+        type: 'line',
+        data: heartRateChartData,
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'bottom',
+                    title: {
+                        display: true,
+                        text: 'Timestamp'
+                    }
+                }
+            }
+        }
+    });
+
+    var bloodPressureChart = new Chart(document.getElementById('bloodPressureChart'), {
+        type: 'line',
+        data: bloodPressureChartData,
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'bottom',
+                    title: {
+                        display: true,
+                        text: 'Timestamp'
+                    }
+                }
+            }
+        }
+    });
+
+    // Listen for new data from the server
+    socket.on('update_chart', function(data) {
+        var timestamp = new Date(data.timestamp).getTime(); // Convert timestamp to milliseconds
+        heartRateChartData.labels.push(timestamp);
+        heartRateChartData.datasets[0].data.push(data.heart_rate);
+        bloodPressureChartData.labels.push(timestamp);
+        bloodPressureChartData.datasets[0].data.push(data.blood_pressure);
+
+        // Update the charts
+        heartRateChart.update();
+        bloodPressureChart.update();
+    });
+</script>
+
+</body>

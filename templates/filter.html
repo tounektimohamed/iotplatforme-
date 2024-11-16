@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Filter MQTT Messages</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7fc;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        .navbar {
+            background-color: #4CAF50;
+            /* Couleur de fond */
+            color: rgb(0, 0, 0);
+            /* Couleur du texte */
+            padding: 10px 20px;
+            /* Padding ajusté pour plus d'espace à l'intérieur */
+            width: 100%;
+            /* Largeur à 100% */
+            text-align: center;
+            /* Alignement centré du texte */
+            position: fixed;
+            /* Position fixe en haut */
+            top: 0;
+            /* Collé en haut */
+            left: 0;
+            /* Aligné à gauche */
+            z-index: 1000;
+            /* S'assurer que la navbar reste au-dessus du reste du contenu */
+            height: 60px;
+            /* Hauteur fixée pour la navbar */
+            box-sizing: border-box;
+            /* Inclure le padding dans la largeur et la hauteur */
+        }
+
+
+        .container {
+            margin-top: 140px;
+            /* Augmenter la valeur pour ajouter plus d'espace */
+            max-width: 800px;
+            width: 100%;
+            padding: 5px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .filter-form label {
+            font-weight: bold;
+        }
+
+        .filter-form input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 100%;
+        }
+
+        .filter-form button {
+            padding: 12px;
+            background-color: #FF5733;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .mqtt-message-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .mqtt-message-table th,
+        .mqtt-message-table td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        .mqtt-message-table th {
+            background-color: #f4f4f4;
+        }
+
+        .back-button {
+            background-color: transparent;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+        }
+
+        .back-button i {
+            font-size: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="navbar">
+        <button onclick="window.history.back()" class="back-button">
+            <i class="fa fa-arrow-left"></i> Retour
+        </button>
+        <h1>Afficher vos données</h1>
+    </div>
+
+    <div class="container">
+        <form class="filter-form" id="filterForm">
+            <label for="startDate">Select Start Date:</label>
+            <input type="date" id="startDate" name="startDate">
+
+            <label for="endDate">Select End Date:</label>
+            <input type="date" id="endDate" name="endDate">
+
+            <button type="submit">Filter Messages</button>
+        </form>
+
+        <h2>Filtered Messages:</h2>
+
+        <!-- Table to display filtered messages -->
+        <table class="mqtt-message-table" id="mqttMessageTable">
+            <thead>
+                <tr>
+                    <th>Topic</th>
+                    <th>Message</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="no-message">
+                    <td colspan="3">No messages to display.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Handle form submission
+        document.getElementById('filterForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            // Get the selected start and end dates from the form
+            const startDateInput = document.getElementById('startDate').value;
+            const endDateInput = document.getElementById('endDate').value;
+
+            if (!startDateInput || !endDateInput) {
+                alert("Please select both start and end dates.");
+                return;
+            }
+
+            // Clear previous results
+            const tableBody = document.querySelector('#mqttMessageTable tbody');
+            tableBody.innerHTML = '';
+
+            // Fetch filtered data from backend
+            fetch(`/api/filter_data?startDate=${startDateInput}&endDate=${endDateInput}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success" && data.data.length > 0) {
+                        data.data.forEach(msg => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${msg.topic}</td>
+                                <td>${msg.message}</td>
+                                <td>${msg.timestamp}</td>
+                            `;
+                            tableBody.appendChild(row);
+                        });
+                    } else {
+                        const noMessageRow = document.createElement('tr');
+                        noMessageRow.innerHTML = '<td colspan="3">No messages found for this date range.</td>';
+                        tableBody.appendChild(noMessageRow);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    const errorRow = document.createElement('tr');
+                    errorRow.innerHTML = '<td colspan="3">Error fetching data.</td>';
+                    tableBody.appendChild(errorRow);
+                });
+        });
+    </script>
+
+</body>
+
+</html>
