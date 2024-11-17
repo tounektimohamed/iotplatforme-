@@ -97,7 +97,7 @@ def login():
     google_auth_url = (
         f"https://accounts.google.com/o/oauth2/v2/auth?"
         f"client_id={GOOGLE_CLIENT_ID}&"
-        f"redirect_uri=http://localhost:5000/callback&"  # Update this for production
+        f"redirect_uri=https://iotplatforme.onrender.com/callback&"  # Update this for production
         f"response_type=code&"
         f"scope=openid email profile"
     )
@@ -112,7 +112,7 @@ def callback():
         "code": code,
         "client_id": GOOGLE_CLIENT_ID,
         "client_secret": GOOGLE_CLIENT_SECRET,
-        "redirect_uri": "http://localhost:5000/callback",
+        "redirect_uri": "https://iotplatforme.onrender.com/callback",
         "grant_type": "authorization_code",
     }
     
